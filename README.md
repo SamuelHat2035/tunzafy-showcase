@@ -129,6 +129,41 @@ keep working unchanged.
 
 ---
 
+## Languages
+
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![SQL](https://img.shields.io/badge/SQL-CC2927?logo=database&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
+![JSON](https://img.shields.io/badge/JSON-000000?logo=json&logoColor=white)
+![Shell](https://img.shields.io/badge/Shell-4EAA25?logo=gnubash&logoColor=white)
+
+Tunzafy is a **TypeScript-first** codebase. The approximate language composition of the
+production monorepo:
+
+| Language | Share | Where it's used |
+| --- | ---: | --- |
+| **TypeScript** | ~85% | API (Node.js / Express), React PWA web, React Native mobile, shared Zod contracts |
+| **SQL / PostgreSQL** | ~7% | Drizzle ORM schema & migrations |
+| **JavaScript** | ~5% | Build tooling and the fine-tuning dataset generator |
+| **JSON / YAML** | ~2% | Config, Cloud Run / Cloud Build manifests, locale data |
+| **Shell** | ~1% | Deploy and maintenance scripts |
+
+```text
+TypeScript      ████████████████████████████████████░░░░  ~85%
+SQL/PostgreSQL  ███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ~7%
+JavaScript      ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ~5%
+JSON/YAML       █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ~2%
+Shell           ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ~1%
+```
+
+> Percentages are approximate and describe the full production monorepo. This showcase
+> repo intentionally surfaces only a small TypeScript excerpt, so GitHub's own language
+> bar reflects just the files included here.
+
+---
+
 ## Security & privacy notes for reviewers
 
 - This repository contains **no secrets**. The only configuration file is a template

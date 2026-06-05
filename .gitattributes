@@ -1,0 +1,9 @@
+# --- GitHub Linguist overrides ---------------------------------------------
+# The fine-tuning dataset generator is a large, auto-generating data artifact.
+# At ~330 KB it dwarfs the application code and skews the language bar toward
+# JavaScript, so we exclude it from language statistics.
+tuning/generate_training_data.mjs linguist-generated=true
+
+# The native-format tuning sample is data, not source code.
+tuning/sample_native_tuning.jsonl linguist-data=true
+*.jsonl linguist-data=true
