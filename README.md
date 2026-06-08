@@ -1,9 +1,8 @@
 # Tunzafy | TunzAI — Code Showcase
 
-> **Curated, read-only excerpt** of the Tunzafy production monorepo, prepared for the
-> **Google for Startups AI Agents Challenge** judges. The full codebase is a private
-> pnpm monorepo; this repository surfaces the modules that best tell the story of how
-> the product and its AI agent are built. It is intended to be *read*, not *built* —
+> **Curated, read-only excerpt** of the Tunzafy production monorepo. The full codebase is
+> a private pnpm monorepo; this repository surfaces the modules that best tell the story of
+> how the product and its AI agent are built. It is intended to be *read*, not *built* —
 > some files import internal workspace packages (`@workspace/*`) that are not included here.
 
 ---
@@ -25,7 +24,7 @@ Both run on the same model layer and the same provider abstraction shown in this
 
 ---
 
-## The Google Cloud / Gemini story
+## The AI provider story
 
 TunzAI is moving onto **Google Cloud Vertex AI**, running a **Gemini model fine-tuned
 (SFT) on a proprietary 14,000-example dataset** that encodes Tunzafy's exact persona,
@@ -100,7 +99,7 @@ tunzafy-showcase/
 
 ### Highlight: the provider switch
 
-The core of the Google Cloud migration is a strategy/factory pattern. Calling code keeps
+The core of the provider abstraction is a strategy/factory pattern. Calling code keeps
 using a single `aiChat(...)` function; the destination is decided at runtime:
 
 ```ts
@@ -164,7 +163,7 @@ Shell           ░░░░░░░░░░░░░░░░░░░░░�
 
 ---
 
-## Security & privacy notes for reviewers
+## Security & privacy notes
 
 - This repository contains **no secrets**. The only configuration file is a template
   ([`config/env.example`](config/env.example)) with placeholder values; all real keys live in
