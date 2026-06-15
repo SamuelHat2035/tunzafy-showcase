@@ -24,7 +24,7 @@
     },
     {
       "id": "french_job_search_routes",
-      "prompt": "Bonjour, je cherche un emploi d'infirmier a Dakar.",
+      "prompt": "Bonjour, je suis infirmier à Dakar et je cherche du travail — peux-tu chercher les offres disponibles ?",
       "expectedTools": ["search_live_jobs"],
       "expectedAuthor": "job_search_agent"
     },
@@ -37,7 +37,7 @@
     },
     {
       "id": "salary_question_uses_market_tool",
-      "prompt": "How much do software engineers typically earn in Lagos, and is hiring strong?",
+      "prompt": "Using Tunzafy's current market data, what's the live salary band and hiring demand for software engineers in Lagos right now?",
       "expectedTools": ["get_job_market_data"],
       "expectedAuthor": "job_search_agent",
       "responseIncludesAny": ["salary", "pay", "demand", "market", "earn"]

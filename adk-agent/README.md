@@ -120,10 +120,10 @@ Pick one in `.env` (see `.env.example`):
 
 TunzAI runs on Google Cloud across two complementary planes:
 
-- **Live ADK runtime (Cloud Run).** The agent is deployed and serving on Cloud
+- **Live ADK runtime (Cloud Run).** I deploy the agent and serve it on Cloud
   Run as the ADK runtime (`adk api_server`), which is the zero-auth endpoint
-  judges can call directly (see the showcase README for the `curl` flow). This
-  is the same `rootAgent` defined in this repo.
+  anyone can call directly (see the showcase README for the `curl` flow). It's
+  the same `rootAgent` defined in this repo.
 - **Vertex AI Agent Engine — Memory Bank.** Long-term, cross-session **semantic**
   memory is backed by a real Vertex AI Agent Engine resource (a managed
   `reasoningEngine`), wired in via `VertexAiMemoryBankService` (see
@@ -161,14 +161,14 @@ npm run deploy:agent-engine        # → src/deployAgentEngine.ts
 > **Container contract.** A container deployed to Agent Engine must implement
 > Agent Engine's serving contract (health + query protocol on the injected
 > `$PORT`). ADK-TS's `api_server` image targets Cloud Run's routes, which is why
-> the live judge-facing runtime is on Cloud Run while the Memory Bank reasoning
-> engine provides the Agent Engine-managed memory plane.
+> I keep the live public-facing runtime on Cloud Run while the Memory Bank
+> reasoning engine provides the Agent Engine-managed memory plane.
 
 
 ## Why this is a strong agentic system
 
-- **Real grounding, not a toy.** The job tool hits Tunzafy's production Vertex
-  AI Search corpus — the same data real users search.
+- **Real grounding, not a toy.** The job tool hits my production Vertex
+  AI Search corpus — the same data my real users search.
 - **True multi-agent delegation** using ADK's native transfer, not hand-rolled
   if/else routing.
 - **Faithful to the product.** CV templates and premium gating mirror the live
@@ -183,7 +183,7 @@ npm run deploy:agent-engine        # → src/deployAgentEngine.ts
 
 ## Security model
 
-This agent is built to be safe to share and safe to run:
+I built this agent to be safe to share and safe to run:
 
 - **Least-privilege tools.** ADK's `SecurityPlugin` is driven by a custom
   deny-by-default policy engine (`src/security.ts`). Only a small allow-list of
@@ -201,17 +201,17 @@ This agent is built to be safe to share and safe to run:
 
 ## What this repository exposes (and what it does not)
 
-This folder is the **only** thing intended for public/judge sharing. It is a
+This folder is the **only** thing I intend for public sharing. It's a
 clean, self-contained presentation of the agent:
 
 - ✅ **Included:** the ADK agent source, tools, callbacks, plugins, security
   policy, eval set, README, and `.env.example` (placeholders only).
-- 🚫 **Not included / never shared:** the Tunzafy monorepo — `api-server`,
+- 🚫 **Not included / never shared:** my Tunzafy monorepo — `api-server`,
   `lib/db`, ingestion jobs, government-feed adapters, fraud/KYC logic, Stripe
   wiring, deployment scripts, and all secrets. None of those are referenced by
-  or reachable from this artifact. Real credentials live only in your local
+  or reachable from this artifact. My real credentials live only in a local
   `.env` (git-ignored) or in Secret Manager at deploy time.
 
-> If you publish this for the hackathon, publish **only** `artifacts/tunzai-agent/`
-> as a standalone repo. Keep the main monorepo private. The agent will run
-> against the public API exactly the same way.
+> I publish **only** this `tunzai-agent/` folder as the standalone showcase and
+> keep my main monorepo private. The agent runs against the public API exactly
+> the same way either way.
