@@ -90,6 +90,6 @@ const GUEST_WINDOW_MS = 24 * 60 * 60 * 1000;
  * location resolution, the multi-source job search waterfall, ranking/merging,
  * CV generation, and the dual seeker/employer knowledge manifestos — all of
  * which call through the same provider-agnostic `openai(...)` (aiChat) entry
- * point so they transparently run on either OpenAI or the fine-tuned Gemini
- * model depending on AI_PROVIDER.
+ * point. In production AI_PROVIDER=GEMINI, so they run on my fine-tuned Gemini
+ * model on Vertex AI, with OpenAI kept only as an instant-rollback fallback.
  */
