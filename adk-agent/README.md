@@ -181,6 +181,33 @@ npm run deploy:agent-engine        # → src/deployAgentEngine.ts
 - **Safe by construction.** Standalone, workspace-excluded, read-only against
   production — building or deploying it cannot affect anything live.
 
+## Where this sits today (and where it's going)
+
+I want to be straight about the architecture rather than overclaim it:
+
+- **My production runtime today is raw Vertex AI `generateContent` tool-calling
+  inside `api-server`, not ADK.** That path is live across 60+ countries with my
+  fine-tuned Gemini model, Stripe, KYC, and fraud gating already hardened around
+  it. I built this ADK port as a deliberate, faithful re-implementation to
+  evaluate ADK as the migration path for that orchestration layer — the model,
+  the data, and the persona are the same; only the agent framework differs.
+- **The agent serves on Cloud Run, and Agent Engine hosts the memory plane.**
+  ADK-TS 1.2's `adk deploy agent_engine` can't ship as-is (I root-caused two
+  defects above), and the `api_server` container doesn't yet satisfy Agent
+  Engine's custom-container serving contract. So the live judge-callable runtime
+  is on Cloud Run, while a real Vertex AI Agent Engine **Memory Bank** provides
+  managed semantic memory.
+- **`get_job_market_data` is partly seeded.** Open-role counts, demand level, and
+  in-demand skills are grounded from live data; the salary band and YoY growth
+  are clearly-labelled illustrative figures until I wire a real compensation
+  source. I'd rather label a heuristic than fabricate a "live" salary number.
+
+My migration plan, in order: adopt this eval set and security policy against the
+production path, run a small share of live traffic through the ADK agent behind a
+flag to compare quality/latency/cost, then move the full runtime onto Agent Engine
+with a custom serving container once the quality bar is met. ADK earns production
+when the evidence says it should — not before.
+
 ## Security model
 
 I built this agent to be safe to share and safe to run:
