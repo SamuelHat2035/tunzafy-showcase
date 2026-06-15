@@ -71,7 +71,8 @@ currently-open job from Tunzafy's live board.
 | **Memory** (`PreloadMemoryTool` + cross-session recall) | [`adk-agent/src/runMemory.ts`](adk-agent/src/runMemory.ts) |
 | **Production memory** (Vertex AI Memory Bank — semantic RAG recall) | [`adk-agent/src/runMemoryVertex.ts`](adk-agent/src/runMemoryVertex.ts) |
 | **Grounding** in real product data | [`adk-agent/src/tools/jobSearch.ts`](adk-agent/src/tools/jobSearch.ts) |
-| **Evaluation** (trajectory + routing + response scoring) | [`adk-agent/src/eval.ts`](adk-agent/src/eval.ts) |
+| **Evaluation** (trajectory + routing + response scoring, 12 cases, CI-gated) | [`adk-agent/src/eval.ts`](adk-agent/src/eval.ts) |
+| **Agent Engine deploy** (corrected REST deploy; ADK-TS 1.2 CLI is broken) | [`adk-agent/src/deployAgentEngine.ts`](adk-agent/src/deployAgentEngine.ts) |
 
 ### How to run it locally
 
@@ -83,7 +84,7 @@ cp .env.example .env          # add a Gemini API key or Vertex AI project
 npm run demo "find me remote data analyst jobs in Kenya"   # multi-agent + live grounding
 npm run demo:memory           # cross-session memory recall (local prototype)
 npm run demo:memory:vertex    # Vertex AI Memory Bank — semantic RAG recall
-npm run eval                  # ADK-style trajectory/routing/response scoring
+npm run eval                  # ADK-style trajectory/routing/response scoring (12 cases)
 npm run agent:web             # ADK dev web UI — chat with the agent in a browser
 ```
 
@@ -179,8 +180,10 @@ tunzafy-showcase/
 │   │   ├── plugins.ts              ← ADK Plugin: structured run/tool telemetry
 │   │   ├── security.ts             ← deny-by-default tool policy engine (ADK SecurityPlugin)
 │   │   ├── runMemory.ts            ← cross-session memory recall demo
+│   │   ├── runMemoryVertex.ts      ← Vertex AI Agent Engine Memory Bank (semantic RAG)
+│   │   ├── deployAgentEngine.ts    ← corrected Agent Engine REST deploy (ADK CLI is broken)
 │   │   └── eval.ts                 ← trajectory + routing + response eval harness
-│   └── eval/tunzai.evalset.json    ← evaluation cases
+│   └── eval/tunzai.evalset.json    ← evaluation cases (12, CI-gated)
 ├── src/
 │   ├── ai-provider/
 │   │   ├── provider.ts             ← ★ OpenAI ↔ Gemini/Vertex AI runtime switch (factory)

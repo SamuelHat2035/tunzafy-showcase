@@ -1,12 +1,18 @@
 /**
  * ADK FunctionTool: get_job_market_data
  *
- * Returns a labour-market snapshot (open roles, salary band, demand, growth, top
- * skills) for a role in a location. The headline `open_roles_estimate` is now
- * GROUNDED in Tunzafy's live corpus: it calls the same public
- * `/api/jobs/semantic-search` endpoint and reports the real `total` match count.
- * The qualitative band (salary/growth/skills) remains a deterministic heuristic,
- * clearly labelled, so the tool runs out of the box and is honest about which
+ * Returns a labour-market snapshot for a role in a location. Most of this tool
+ * is now GROUNDED in Tunzafy's live corpus via the public
+ * `/api/jobs/semantic-search` endpoint:
+ *
+ *   • open_roles_live      — real count of currently-open matching roles.
+ *   • demand_level         — derived from that real live count (thresholds).
+ *   • top_requested_skills — extracted from the titles of the real, live
+ *                            matching jobs (keyword frequency), not a stub.
+ *
+ * Only the salary band and year-over-year growth remain a deterministic,
+ * clearly-labelled illustrative heuristic (Tunzafy does not publish a verified
+ * salary series), so the tool runs out of the box and is honest about which
  * fields are live vs. illustrative.
  */
 import { FunctionTool } from "@google/adk";
@@ -23,19 +29,35 @@ const parameters = z.object({
 });
 
 const DEMAND_LEVELS = ["low", "moderate", "high", "very high"] as const;
-const TOP_SKILLS = [
-  "communication",
-  "problem solving",
-  "Excel",
-  "SQL",
-  "stakeholder management",
-];
 
-/** Best-effort live count of currently-open matching roles (fail-soft → null). */
-async function fetchLiveOpenRoles(
+/** Common words to ignore when extracting skills/keywords from job titles. */
+const TITLE_STOPWORDS = new Set([
+  "and", "or", "the", "a", "an", "for", "with", "of", "to", "in", "at", "on",
+  "job", "jobs", "role", "roles", "vacancy", "vacancies", "position",
+  "positions", "senior", "junior", "lead", "head", "chief", "remote", "hybrid",
+  "onsite", "full", "part", "time", "fulltime", "parttime", "contract",
+  "permanent", "temporary", "intern", "internship", "entry", "level", "mid",
+  "i", "ii", "iii", "new", "team", "officer", "specialist", "assistant",
+]);
+
+interface LiveJobTitle {
+  title?: string;
+  jobTitle?: string;
+}
+
+interface LiveMarketSignal {
+  total: number | null;
+  titles: string[];
+}
+
+/**
+ * Best-effort live signal from Tunzafy's corpus: the real total match count and
+ * the titles of the matching jobs. Fail-soft → { total: null, titles: [] }.
+ */
+async function fetchLiveMarketSignal(
   role: string,
   location: string,
-): Promise<number | null> {
+): Promise<LiveMarketSignal> {
   try {
     const params = new URLSearchParams({ q: `${role} ${location}`.trim() });
     params.set("country", location);
@@ -49,60 +71,115 @@ async function fetchLiveOpenRoles(
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    if (!resp.ok) return null;
+    if (!resp.ok) return { total: null, titles: [] };
 
     const data = (await resp.json()) as {
       enabled?: boolean;
       total?: number;
-      jobs?: unknown[];
+      jobs?: LiveJobTitle[];
     };
-    if (data.enabled === false) return null;
-    if (typeof data.total === "number") return data.total;
-    if (Array.isArray(data.jobs)) return data.jobs.length;
-    return null;
+    if (data.enabled === false) return { total: null, titles: [] };
+
+    const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+    const titles = jobs
+      .map((j) => (j.title ?? j.jobTitle ?? "").trim())
+      .filter(Boolean);
+    const total =
+      typeof data.total === "number" ? data.total : titles.length || null;
+    return { total, titles };
   } catch {
-    return null;
+    return { total: null, titles: [] };
   }
+}
+
+/** Map a real live open-role count to a demand band. */
+function demandFromCount(count: number): (typeof DEMAND_LEVELS)[number] {
+  if (count >= 200) return "very high";
+  if (count >= 50) return "high";
+  if (count >= 10) return "moderate";
+  return "low";
+}
+
+/**
+ * Extract the most frequent meaningful keywords from real live job titles.
+ * This makes top_requested_skills reflect what employers are actually hiring
+ * for right now, rather than a static list.
+ */
+function skillsFromTitles(titles: string[], role: string): string[] {
+  const roleTokens = new Set(
+    role.toLowerCase().split(/[^a-z0-9+#.]+/).filter(Boolean),
+  );
+  const counts = new Map<string, number>();
+  for (const title of titles) {
+    const tokens = title
+      .toLowerCase()
+      .split(/[^a-z0-9+#.]+/)
+      .filter(Boolean);
+    const seen = new Set<string>();
+    for (const tok of tokens) {
+      if (tok.length < 3) continue;
+      if (TITLE_STOPWORDS.has(tok)) continue;
+      if (roleTokens.has(tok)) continue;
+      if (seen.has(tok)) continue; // count each token once per title
+      seen.add(tok);
+      counts.set(tok, (counts.get(tok) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 5)
+    .map(([word]) => word);
 }
 
 export const jobMarketDataTool = new FunctionTool({
   name: "get_job_market_data",
   description:
-    "Look up current labour-market data (live open-role count, median salary " +
-    "band, demand level, year-over-year growth, and top requested skills) for " +
-    "a specific job role in a specific location. Call this whenever the user " +
-    "asks about job prospects, pay, demand, or hiring trends for a role.",
+    "Look up current labour-market data (live open-role count, demand level, " +
+    "and the skills/keywords employers are actually hiring for now, plus an " +
+    "illustrative salary band) for a specific job role in a specific location. " +
+    "Call this whenever the user asks about job prospects, pay, demand, or " +
+    "hiring trends for a role.",
   parameters,
   execute: async ({ location, role }) => {
     const locationNorm = location.trim();
     const roleNorm = role.trim();
 
-    // Deterministic pseudo-data derived from the inputs so identical questions
-    // give identical qualitative answers (illustrative band only).
+    // Live grounding: real count + real titles from Tunzafy's corpus.
+    const { total: liveOpenRoles, titles } = await fetchLiveMarketSignal(
+      roleNorm,
+      locationNorm,
+    );
+    const liveSkills = skillsFromTitles(titles, roleNorm);
+    const grounded = liveOpenRoles !== null;
+
+    // Deterministic seed for the remaining illustrative-only fields.
     const seed =
       [...`${locationNorm}${roleNorm}`.toLowerCase()].reduce(
         (acc, ch) => acc + ch.charCodeAt(0),
         0,
       ) || 1;
-    const skills = [0, 1, 2].map((i) => TOP_SKILLS[(seed + i) % TOP_SKILLS.length]);
-
-    // Real, live grounding for the headline number.
-    const liveOpenRoles = await fetchLiveOpenRoles(roleNorm, locationNorm);
 
     return {
       location: locationNorm,
       role: roleNorm,
+      // Live-grounded fields.
       open_roles_live: liveOpenRoles,
-      open_roles_estimate: liveOpenRoles ?? 50 + (seed % 950),
-      open_roles_source: liveOpenRoles !== null ? "tunzafy_live_corpus" : "estimate",
+      open_roles_source: grounded ? "tunzafy_live_corpus" : "estimate",
+      demand_level: grounded
+        ? demandFromCount(liveOpenRoles)
+        : DEMAND_LEVELS[seed % DEMAND_LEVELS.length],
+      demand_source: grounded ? "tunzafy_live_corpus" : "estimate",
+      top_requested_skills: liveSkills.length ? liveSkills : null,
+      top_skills_source: liveSkills.length ? "tunzafy_live_titles" : "unavailable",
+      sample_live_titles: titles.slice(0, 5),
+      // Illustrative-only fields (no verified salary source).
       median_annual_salary_usd: 12000 + (seed % 60) * 1000,
       year_over_year_growth_pct:
-        Math.round((((seed % 25) - 5) + (seed % 10) / 10) * 10) / 10,
-      demand_level: DEMAND_LEVELS[seed % DEMAND_LEVELS.length],
-      top_requested_skills: skills,
+        Math.round(((seed % 25) - 5 + (seed % 10) / 10) * 10) / 10,
       data_note:
-        "open_roles_live is a real count from Tunzafy's live corpus; salary/" +
-        "growth/skills are deterministic illustrative bands.",
+        "open_roles_live, demand_level, and top_requested_skills are derived " +
+        "from Tunzafy's live corpus; median_annual_salary_usd and " +
+        "year_over_year_growth_pct are deterministic illustrative bands.",
     };
   },
 });

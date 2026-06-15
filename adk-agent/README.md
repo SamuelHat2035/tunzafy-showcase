@@ -32,9 +32,10 @@ Engine**.
 | **Plugins** (global runner lifecycle hooks) | `src/plugins.ts` |
 | **Security plugin + policy engine** (least-privilege tool authz) | `src/security.ts` |
 | **Memory** (`PreloadMemoryTool` + memory service) | `src/agent.ts`, `src/runMemory.ts` |
-| **Production memory** (Vertex AI Memory Bank, semantic RAG recall) | `src/runMemoryVertex.ts` |
+| **Vertex AI Agent Engine — Memory Bank** (managed semantic RAG memory) | `src/runMemoryVertex.ts` |
 | **Grounding** in real product data | `search_live_jobs` → live Vertex AI Search API |
-| **Evaluation** (trajectory + response scoring) | `src/eval.ts`, `eval/tunzai.evalset.json` |
+| **Evaluation** (trajectory + routing + response scoring) | `src/eval.ts`, `eval/tunzai.evalset.json` |
+| **Agent Engine deploy** (corrected REST deploy; ADK-TS 1.2 CLI is broken) | `src/deployAgentEngine.ts` |
 | Runner / sessions (`InMemoryRunner`, explicit `Runner`) | `src/run.ts`, `src/runMemory.ts` |
 
 ### Architecture
@@ -69,9 +70,11 @@ production TunzAI uses.
 - **`search_live_jobs`** — calls Tunzafy's live, public `GET
   /api/jobs/semantic-search` (Vertex AI Search over the real job corpus,
   re-validated through the product's liveness/fraud gates). Fail-soft.
-- **`get_job_market_data`** — labour-market snapshot (pay, demand, growth, top
-  skills). Deterministic synthetic stub; swap in a real source without changing
-  the schema.
+- **`get_job_market_data`** — labour-market snapshot for a role + location. The
+  open-role **count**, **demand level**, and **top requested skills** are
+  derived live from Tunzafy's corpus (real counts + keywords mined from the
+  titles of currently-open matching jobs); only the salary band and YoY growth
+  are clearly-labelled illustrative heuristics (no verified salary series).
 - **`find_resume_templates`** — Tunzafy's five canonical CV styles
   (`professional`, `creative`, `technical`, `executive`, `minimalist`), kept in
   sync with the api-server's `CV_TEMPLATE_INSTRUCTIONS`. Premium-aware: the
@@ -80,7 +83,7 @@ production TunzAI uses.
 ## Run locally
 
 ```bash
-cd adk-agent
+cd artifacts/tunzai-agent
 npm install
 cp .env.example .env   # then fill in Gemini credentials
 ```
@@ -91,9 +94,6 @@ npm run demo "find me remote data analyst jobs in Kenya"
 
 # Multi-turn MEMORY demo (recall across two separate sessions)
 npm run demo:memory
-
-# Production MEMORY demo — Vertex AI Memory Bank (semantic RAG recall)
-npm run demo:memory:vertex
 
 # Evaluation — trajectory + response scoring, gates CI (exit 1 on regression)
 npm run eval
@@ -116,70 +116,54 @@ Pick one in `.env` (see `.env.example`):
   `GOOGLE_CLOUD_LOCATION`, plus ADC (`gcloud auth application-default login`).
 - **AI Studio** — `GEMINI_API_KEY`.
 
-## Memory: prototype vs. production
+## Deployment & Vertex AI Agent Engine
 
-The agent demonstrates ADK memory at two levels:
+TunzAI runs on Google Cloud across two complementary planes:
 
-- **`npm run demo:memory`** — local prototype using `InMemoryMemoryService`.
-  Recall is *keyword*-based, so turn 2 has to share words with turn 1.
-- **`npm run demo:memory:vertex`** — production path using ADK's
-  `VertexAiMemoryBankService`, a managed **Vertex AI Memory Bank** that recalls
-  prior context *semantically*. In the demo, turn 1 says *"registered nurse in
-  Nairobi, remote only"* and turn 2 — a **brand-new session** — asks as an *"ICU
-  practitioner who needs to work from home near the Kenyan capital."* With almost
-  no shared keywords, the Memory Bank still surfaces the earlier context by
-  meaning. Set `TUNZAI_AGENT_ENGINE_ID` (+ Vertex project/location + ADC) to run
-  it; it self-skips cleanly when unset.
+- **Live ADK runtime (Cloud Run).** The agent is deployed and serving on Cloud
+  Run as the ADK runtime (`adk api_server`), which is the zero-auth endpoint
+  judges can call directly (see the showcase README for the `curl` flow). This
+  is the same `rootAgent` defined in this repo.
+- **Vertex AI Agent Engine — Memory Bank.** Long-term, cross-session **semantic**
+  memory is backed by a real Vertex AI Agent Engine resource (a managed
+  `reasoningEngine`), wired in via `VertexAiMemoryBankService` (see
+  `src/runMemoryVertex.ts`). This is a genuine Agent Engine integration, not a
+  local stub — recall works across sessions with zero keyword overlap.
 
-This is the same long-term-memory backbone TunzAI uses to remember a seeker's
-profile, preferences, and history across visits — not just within one chat.
+### Deploying the container runtime to Agent Engine
 
-## Live deployment (Google Cloud Run)
+The bundled `adk deploy agent_engine` command in **ADK-TS 1.2 cannot run as
+shipped** — I root-caused two defects from its source
+(`@google/adk-devtools/.../cli_deploy_agent_engine.js`):
 
-This agent is **already deployed** and serving the ADK runtime over a public HTTP
-API \u2014 no install required:
+1. It imports `@google-cloud/vertexai/build/src/genai/client.js`, but
+   `@google-cloud/vertexai` is **not a declared dependency or peer** of
+   `@google/adk-devtools`, so the import throws `ERR_MODULE_NOT_FOUND`.
+2. Even past that, it hardcodes the build image as
+   `gcr.io/<project>/agent-engine-<app>:latest` and passes that to the
+   reasoning-engine create call. **Vertex AI rejects a non-Artifact-Registry
+   URI** (`FAILED_PRECONDITION`); the Cloud Build succeeds, only the final
+   create call fails.
 
-**Base URL:** `https://tunzai-agent-m2po7a42jq-uc.a.run.app`
-
-```bash
-BASE="https://tunzai-agent-m2po7a42jq-uc.a.run.app"
-
-curl "$BASE/list-apps"                                          # -> ["agent"]
-
-curl -X POST "$BASE/apps/agent/users/judge/sessions/s1" \
-  -H "Content-Type: application/json" -d '{}'
-
-curl -X POST "$BASE/run" -H "Content-Type: application/json" -d '{
-  "appName": "agent", "userId": "judge", "sessionId": "s1",
-  "newMessage": { "role": "user",
-    "parts": [{ "text": "find me remote data analyst jobs in Kenya" }] }
-}'
-```
-
-It runs the exported `rootAgent` as a container on Cloud Run (region
-`us-central1`, port `8000`, Vertex AI / Gemini backed). The `/run` response
-returns the full ADK event trace: `transfer_to_agent` \u2192 `search_live_jobs` \u2192 a
-grounded answer with a real open job.
-
-## Deploy to Vertex AI Agent Engine
-
-The agent is also Agent-Engine-ready. With the ADK CLI / devtools:
+This repo ships a corrected, dependency-free replacement that talks to the
+Vertex AI `reasoningEngines` REST API directly (using a short-lived `gcloud`
+access token), builds from a **valid Artifact Registry** image, and polls the
+deployment operation:
 
 ```bash
-# Authenticate + select project
-gcloud auth application-default login
-gcloud config set project tunzafy
-
-# Deploy the exported `rootAgent` to Agent Engine
-npx adk deploy agent_engine \
-  --project tunzafy \
-  --region us-central1 \
-  --staging_bucket gs://tunzafy-agent-engine \
-  src/agent.ts
+# Build + push a container that implements Agent Engine's serving contract,
+# then create the reasoning engine from that Artifact Registry image:
+TUNZAI_AGENT_IMAGE=us-central1-docker.pkg.dev/<project>/<repo>/tunzai-agent:v1 \
+GOOGLE_CLOUD_PROJECT=<project> GOOGLE_CLOUD_LOCATION=us-central1 \
+npm run deploy:agent-engine        # → src/deployAgentEngine.ts
 ```
 
-(Exact flags depend on the installed `@google/adk-devtools` version — run
-`npx adk deploy --help`.)
+> **Container contract.** A container deployed to Agent Engine must implement
+> Agent Engine's serving contract (health + query protocol on the injected
+> `$PORT`). ADK-TS's `api_server` image targets Cloud Run's routes, which is why
+> the live judge-facing runtime is on Cloud Run while the Memory Bank reasoning
+> engine provides the Agent Engine-managed memory plane.
+
 
 ## Why this is a strong agentic system
 
@@ -191,7 +175,9 @@ npx adk deploy agent_engine \
   TunzAI exactly.
 - **Observable & evaluated.** A telemetry plugin emits structured run/tool
   events, and `npm run eval` scores the agent's tool trajectory + routing +
-  response so regressions fail CI.
+  response across 12 cases (multilingual, salary, premium-gating, and
+  prompt-injection) so regressions fail CI (GitHub Actions runs it on every
+  change to the agent).
 - **Safe by construction.** Standalone, workspace-excluded, read-only against
   production — building or deploying it cannot affect anything live.
 
@@ -223,5 +209,9 @@ clean, self-contained presentation of the agent:
 - 🚫 **Not included / never shared:** the Tunzafy monorepo — `api-server`,
   `lib/db`, ingestion jobs, government-feed adapters, fraud/KYC logic, Stripe
   wiring, deployment scripts, and all secrets. None of those are referenced by
-  or reachable from this artifact. Real credentials live only in a local
+  or reachable from this artifact. Real credentials live only in your local
   `.env` (git-ignored) or in Secret Manager at deploy time.
+
+> If you publish this for the hackathon, publish **only** `artifacts/tunzai-agent/`
+> as a standalone repo. Keep the main monorepo private. The agent will run
+> against the public API exactly the same way.

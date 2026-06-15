@@ -1,0 +1,47 @@
+name: adk-agent-ci
+
+# Continuous integration for the standalone TunzAI ADK agent.
+# Runs on every push / PR that touches the agent. It type-checks the whole
+# agent and runs the ADK-style evaluation harness (trajectory + routing +
+# response scoring). The eval self-skips with exit 0 when no Gemini credentials
+# are configured in the runner, so CI stays green on forks while still gating
+# real regressions whenever GEMINI_API_KEY is provided as a repo secret.
+
+on:
+  push:
+    paths:
+      - "adk-agent/**"
+      - ".github/workflows/adk-agent-ci.yml"
+  pull_request:
+    paths:
+      - "adk-agent/**"
+      - ".github/workflows/adk-agent-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  typecheck-and-eval:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: adk-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: adk-agent/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: ADK evaluation (trajectory + routing + response)
+        env:
+          # Optional: set GEMINI_API_KEY as a repo secret to run the live eval.
+          # Without it the harness prints setup instructions and exits 0.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: npm run eval

@@ -8,7 +8,7 @@
   "scripts": {
     "agent:run": "adk run tunzai_resourcing_agent/agent.ts",
     "agent:web": "adk web .",
-    "deploy:agent-engine": "adk deploy agent_engine --project tunzafy --region us-central1 .",
+    "deploy:agent-engine": "tsx src/deployAgentEngine.ts",
     "demo": "tsx src/run.ts",
     "demo:memory": "tsx src/runMemory.ts",
     "demo:memory:vertex": "tsx src/runMemoryVertex.ts",
