@@ -24,6 +24,15 @@ export const AGENT_MODEL: string =
   process.env.TUNZAI_AGENT_MODEL?.trim() || "gemini-2.5-flash";
 
 /**
+ * Optional Vertex AI Agent Engine ID, used only by the production-grade memory
+ * demo (`npm run demo:memory:vertex`) to back long-term memory with a Vertex AI
+ * Memory Bank (semantic RAG recall) instead of the local keyword prototype.
+ * Leave unset and that demo self-skips; nothing else depends on it.
+ */
+export const AGENT_ENGINE_ID: string | undefined =
+  process.env.TUNZAI_AGENT_ENGINE_ID?.trim() || undefined;
+
+/**
  * Base URL of Tunzafy's public API. The job-search tool calls the live
  * `/api/jobs/semantic-search` endpoint here, so the agent grounds its results
  * in the same ~20k-job Vertex AI Search corpus the product already uses — no

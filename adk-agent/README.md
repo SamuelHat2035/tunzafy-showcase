@@ -32,6 +32,7 @@ Engine**.
 | **Plugins** (global runner lifecycle hooks) | `src/plugins.ts` |
 | **Security plugin + policy engine** (least-privilege tool authz) | `src/security.ts` |
 | **Memory** (`PreloadMemoryTool` + memory service) | `src/agent.ts`, `src/runMemory.ts` |
+| **Production memory** (Vertex AI Memory Bank, semantic RAG recall) | `src/runMemoryVertex.ts` |
 | **Grounding** in real product data | `search_live_jobs` → live Vertex AI Search API |
 | **Evaluation** (trajectory + response scoring) | `src/eval.ts`, `eval/tunzai.evalset.json` |
 | Runner / sessions (`InMemoryRunner`, explicit `Runner`) | `src/run.ts`, `src/runMemory.ts` |
@@ -91,6 +92,9 @@ npm run demo "find me remote data analyst jobs in Kenya"
 # Multi-turn MEMORY demo (recall across two separate sessions)
 npm run demo:memory
 
+# Production MEMORY demo — Vertex AI Memory Bank (semantic RAG recall)
+npm run demo:memory:vertex
+
 # Evaluation — trajectory + response scoring, gates CI (exit 1 on regression)
 npm run eval
 
@@ -111,6 +115,24 @@ Pick one in `.env` (see `.env.example`):
 - **Vertex AI** — `GOOGLE_GENAI_USE_VERTEXAI=true`, `GOOGLE_CLOUD_PROJECT`,
   `GOOGLE_CLOUD_LOCATION`, plus ADC (`gcloud auth application-default login`).
 - **AI Studio** — `GEMINI_API_KEY`.
+
+## Memory: prototype vs. production
+
+The agent demonstrates ADK memory at two levels:
+
+- **`npm run demo:memory`** — local prototype using `InMemoryMemoryService`.
+  Recall is *keyword*-based, so turn 2 has to share words with turn 1.
+- **`npm run demo:memory:vertex`** — production path using ADK's
+  `VertexAiMemoryBankService`, a managed **Vertex AI Memory Bank** that recalls
+  prior context *semantically*. In the demo, turn 1 says *"registered nurse in
+  Nairobi, remote only"* and turn 2 — a **brand-new session** — asks as an *"ICU
+  practitioner who needs to work from home near the Kenyan capital."* With almost
+  no shared keywords, the Memory Bank still surfaces the earlier context by
+  meaning. Set `TUNZAI_AGENT_ENGINE_ID` (+ Vertex project/location + ADC) to run
+  it; it self-skips cleanly when unset.
+
+This is the same long-term-memory backbone TunzAI uses to remember a seeker's
+profile, preferences, and history across visits — not just within one chat.
 
 ## Live deployment (Google Cloud Run)
 

@@ -11,6 +11,7 @@
     "deploy:agent-engine": "adk deploy agent_engine --project tunzafy --region us-central1 .",
     "demo": "tsx src/run.ts",
     "demo:memory": "tsx src/runMemory.ts",
+    "demo:memory:vertex": "tsx src/runMemoryVertex.ts",
     "eval": "tsx src/eval.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

@@ -69,6 +69,7 @@ currently-open job from Tunzafy's live board.
 | **Plugins** (global runner lifecycle hooks) | [`adk-agent/src/plugins.ts`](adk-agent/src/plugins.ts) |
 | **Security plugin + policy engine** (least-privilege tool authz) | [`adk-agent/src/security.ts`](adk-agent/src/security.ts) |
 | **Memory** (`PreloadMemoryTool` + cross-session recall) | [`adk-agent/src/runMemory.ts`](adk-agent/src/runMemory.ts) |
+| **Production memory** (Vertex AI Memory Bank — semantic RAG recall) | [`adk-agent/src/runMemoryVertex.ts`](adk-agent/src/runMemoryVertex.ts) |
 | **Grounding** in real product data | [`adk-agent/src/tools/jobSearch.ts`](adk-agent/src/tools/jobSearch.ts) |
 | **Evaluation** (trajectory + routing + response scoring) | [`adk-agent/src/eval.ts`](adk-agent/src/eval.ts) |
 
@@ -80,7 +81,8 @@ npm install
 cp .env.example .env          # add a Gemini API key or Vertex AI project
 
 npm run demo "find me remote data analyst jobs in Kenya"   # multi-agent + live grounding
-npm run demo:memory           # cross-session memory recall
+npm run demo:memory           # cross-session memory recall (local prototype)
+npm run demo:memory:vertex    # Vertex AI Memory Bank — semantic RAG recall
 npm run eval                  # ADK-style trajectory/routing/response scoring
 npm run agent:web             # ADK dev web UI — chat with the agent in a browser
 ```
