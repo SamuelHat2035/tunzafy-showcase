@@ -79,7 +79,7 @@ production TunzAI uses.
 ## Run locally
 
 ```bash
-cd artifacts/tunzai-agent
+cd adk-agent
 npm install
 cp .env.example .env   # then fill in Gemini credentials
 ```
@@ -174,9 +174,5 @@ clean, self-contained presentation of the agent:
 - 🚫 **Not included / never shared:** the Tunzafy monorepo — `api-server`,
   `lib/db`, ingestion jobs, government-feed adapters, fraud/KYC logic, Stripe
   wiring, deployment scripts, and all secrets. None of those are referenced by
-  or reachable from this artifact. Real credentials live only in your local
+  or reachable from this artifact. Real credentials live only in a local
   `.env` (git-ignored) or in Secret Manager at deploy time.
-
-> If you publish this for the hackathon, publish **only** `artifacts/tunzai-agent/`
-> as a standalone repo. Keep the main monorepo private. The agent will run
-> against the public API exactly the same way.
