@@ -112,9 +112,36 @@ Pick one in `.env` (see `.env.example`):
   `GOOGLE_CLOUD_LOCATION`, plus ADC (`gcloud auth application-default login`).
 - **AI Studio** — `GEMINI_API_KEY`.
 
+## Live deployment (Google Cloud Run)
+
+This agent is **already deployed** and serving the ADK runtime over a public HTTP
+API \u2014 no install required:
+
+**Base URL:** `https://tunzai-agent-m2po7a42jq-uc.a.run.app`
+
+```bash
+BASE="https://tunzai-agent-m2po7a42jq-uc.a.run.app"
+
+curl "$BASE/list-apps"                                          # -> ["agent"]
+
+curl -X POST "$BASE/apps/agent/users/judge/sessions/s1" \
+  -H "Content-Type: application/json" -d '{}'
+
+curl -X POST "$BASE/run" -H "Content-Type: application/json" -d '{
+  "appName": "agent", "userId": "judge", "sessionId": "s1",
+  "newMessage": { "role": "user",
+    "parts": [{ "text": "find me remote data analyst jobs in Kenya" }] }
+}'
+```
+
+It runs the exported `rootAgent` as a container on Cloud Run (region
+`us-central1`, port `8000`, Vertex AI / Gemini backed). The `/run` response
+returns the full ADK event trace: `transfer_to_agent` \u2192 `search_live_jobs` \u2192 a
+grounded answer with a real open job.
+
 ## Deploy to Vertex AI Agent Engine
 
-The agent is Agent-Engine-ready. With the ADK CLI / devtools:
+The agent is also Agent-Engine-ready. With the ADK CLI / devtools:
 
 ```bash
 # Authenticate + select project

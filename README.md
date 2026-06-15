@@ -28,6 +28,36 @@ It grounds its answers in Tunzafy's **live** job corpus by calling the same publ
 `/api/jobs/semantic-search` endpoint the website uses (Vertex AI Search over ~20k
 fraud-gated jobs) — so it holds no database credentials, no secrets, and no private paths.
 
+### ✨ Try it live (no install)
+
+The agent is **deployed on Google Cloud Run** and answers over a public HTTP API —
+no clone, no keys needed. It serves the ADK runtime directly (the same `rootAgent`
+in this repo).
+
+**Base URL:** `https://tunzai-agent-m2po7a42jq-uc.a.run.app`
+
+```bash
+BASE="https://tunzai-agent-m2po7a42jq-uc.a.run.app"
+
+# 1) See the registered app
+curl "$BASE/list-apps"            # -> ["agent"]
+
+# 2) Open a session
+curl -X POST "$BASE/apps/agent/users/judge/sessions/s1" \
+  -H "Content-Type: application/json" -d '{}'
+
+# 3) Ask the agent
+curl -X POST "$BASE/run" -H "Content-Type: application/json" -d '{
+  "appName": "agent", "userId": "judge", "sessionId": "s1",
+  "newMessage": { "role": "user",
+    "parts": [{ "text": "find me remote data analyst jobs in Kenya" }] }
+}'
+```
+
+The response shows the full ADK trace: the root coordinator `transfer_to_agent` →
+the `job_search_agent` calling `search_live_jobs` → a grounded answer with a real,
+currently-open job from Tunzafy's live board.
+
 ### ADK core concepts demonstrated
 
 | ADK concept | Where |
@@ -42,7 +72,7 @@ fraud-gated jobs) — so it holds no database credentials, no secrets, and no pr
 | **Grounding** in real product data | [`adk-agent/src/tools/jobSearch.ts`](adk-agent/src/tools/jobSearch.ts) |
 | **Evaluation** (trajectory + routing + response scoring) | [`adk-agent/src/eval.ts`](adk-agent/src/eval.ts) |
 
-### How to run it (what judges do)
+### How to run it locally
 
 ```bash
 cd adk-agent
