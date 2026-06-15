@@ -2,8 +2,61 @@
 
 > **Curated, read-only excerpt** of the Tunzafy production monorepo. The full codebase is
 > a private pnpm monorepo; this repository surfaces the modules that best tell the story of
-> how the product and its AI agent are built. It is intended to be *read*, not *built* —
-> some files import internal workspace packages (`@workspace/*`) that are not included here.
+> how the product and its AI agent are built. Most files are intended to be *read*, not
+> *built* — some import internal workspace packages (`@workspace/*`) that are not included
+> here. **The exception is [`adk-agent/`](adk-agent/) — a fully standalone, runnable Google
+> Agent Development Kit (ADK) agent** that judges can install and run in two commands.
+
+---
+
+## 🔗 Live product & demo videos
+
+- **Live platform:** https://tunzafy.com
+- **Founder's presentation** (problem, business case, Google Cloud + ADK): https://youtu.be/Fb3v07efaTg
+- **Product demo (TunzAI in action):** https://youtu.be/1dUzNRDfJoA
+
+---
+
+## 🤖 The ADK agent (runnable) — start here
+
+[`adk-agent/`](adk-agent/) is a standalone re-implementation of **TunzAI** on the
+**Google Agent Development Kit (ADK for TypeScript, `@google/adk`)**. It is the part of
+this repo built specifically for the **Google for Startups AI Agents Challenge**, and
+unlike the rest of the showcase it **runs on its own** — no monorepo, no private packages.
+
+It grounds its answers in Tunzafy's **live** job corpus by calling the same public
+`/api/jobs/semantic-search` endpoint the website uses (Vertex AI Search over ~20k
+fraud-gated jobs) — so it holds no database credentials, no secrets, and no private paths.
+
+### ADK core concepts demonstrated
+
+| ADK concept | Where |
+| --- | --- |
+| `LlmAgent` (Gemini-backed declarative agents) | [`adk-agent/src/agent.ts`](adk-agent/src/agent.ts) |
+| `FunctionTool` (typed, Zod-validated tools) | [`adk-agent/src/tools/`](adk-agent/src/tools) |
+| **Multi-agent routing** via `subAgents` + built-in LLM transfer | [`adk-agent/src/agent.ts`](adk-agent/src/agent.ts) |
+| **Agent callbacks** (before/after tool hooks) | [`adk-agent/src/callbacks.ts`](adk-agent/src/callbacks.ts) |
+| **Plugins** (global runner lifecycle hooks) | [`adk-agent/src/plugins.ts`](adk-agent/src/plugins.ts) |
+| **Security plugin + policy engine** (least-privilege tool authz) | [`adk-agent/src/security.ts`](adk-agent/src/security.ts) |
+| **Memory** (`PreloadMemoryTool` + cross-session recall) | [`adk-agent/src/runMemory.ts`](adk-agent/src/runMemory.ts) |
+| **Grounding** in real product data | [`adk-agent/src/tools/jobSearch.ts`](adk-agent/src/tools/jobSearch.ts) |
+| **Evaluation** (trajectory + routing + response scoring) | [`adk-agent/src/eval.ts`](adk-agent/src/eval.ts) |
+
+### How to run it (what judges do)
+
+```bash
+cd adk-agent
+npm install
+cp .env.example .env          # add a Gemini API key or Vertex AI project
+
+npm run demo "find me remote data analyst jobs in Kenya"   # multi-agent + live grounding
+npm run demo:memory           # cross-session memory recall
+npm run eval                  # ADK-style trajectory/routing/response scoring
+npm run agent:web             # ADK dev web UI — chat with the agent in a browser
+```
+
+Full details, architecture diagram, and the security model are in
+[`adk-agent/README.md`](adk-agent/README.md).
 
 ---
 
@@ -81,6 +134,17 @@ flowchart TD
 ```
 tunzafy-showcase/
 ├── README.md                       ← you are here
+├── adk-agent/                      ← ★ STANDALONE, RUNNABLE Google ADK agent
+│   ├── README.md                   ← run instructions, architecture, security model
+│   ├── src/
+│   │   ├── agent.ts                ← root coordinator + 2 specialist sub-agents (LlmAgent)
+│   │   ├── tools/                  ← FunctionTools: live job search, market data, CV templates
+│   │   ├── callbacks.ts            ← ADK before/after tool callbacks (input hardening + grounding)
+│   │   ├── plugins.ts              ← ADK Plugin: structured run/tool telemetry
+│   │   ├── security.ts             ← deny-by-default tool policy engine (ADK SecurityPlugin)
+│   │   ├── runMemory.ts            ← cross-session memory recall demo
+│   │   └── eval.ts                 ← trajectory + routing + response eval harness
+│   └── eval/tunzai.evalset.json    ← evaluation cases
 ├── src/
 │   ├── ai-provider/
 │   │   ├── provider.ts             ← ★ OpenAI ↔ Gemini/Vertex AI runtime switch (factory)
@@ -122,6 +186,7 @@ keep working unchanged.
 
 - **Language:** TypeScript end-to-end (Node.js / Express API, React PWA web, React Native mobile)
 - **AI:** Google **Vertex AI** + **fine-tuned Gemini**; OpenAI as the fallback provider; `@google-cloud/vertexai` SDK
+- **Agents:** **Google Agent Development Kit (ADK for TypeScript, `@google/adk`)** — multi-agent routing, callbacks, plugins, memory, and evaluation (see [`adk-agent/`](adk-agent/))
 - **Data:** PostgreSQL with **Drizzle ORM**; Zod contracts shared across client/server
 - **Infra (Google Cloud):** Cloud Run, Cloud Build, Artifact Registry, Cloud Load Balancing + Cloud Armor, Cloud Monitoring & Logging
 - **Delivery:** pnpm monorepo, SSE streaming for the "typing" agent experience
@@ -174,6 +239,10 @@ Shell           ░░░░░░░░░░░░░░░░░░░░░�
 - The agent input pipeline strips zero-width / bidi-override characters, caps input length,
   appends a prompt-injection guardrail, and rate-limits per user — see
   [`src/safety/aiSafety.ts`](src/safety/aiSafety.ts).
+- The ADK agent is hardened independently: a **deny-by-default tool policy engine**
+  ([`adk-agent/src/security.ts`](adk-agent/src/security.ts)) wired into ADK's `SecurityPlugin`,
+  an **SSRF host allow-list** for all outbound calls, and tool-argument clamping. It reaches
+  Tunzafy only through the public read-only search endpoint — no database, no secrets.
 
 ---
 

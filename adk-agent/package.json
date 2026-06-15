@@ -1,0 +1,27 @@
+{
+  "name": "tunzai-agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/agent.ts",
+  "description": "TunzAI resourcing agent built with the Google Agent Development Kit (ADK) for TypeScript. Standalone, independently deployable to Vertex AI Agent Engine.",
+  "scripts": {
+    "agent:run": "adk run tunzai_resourcing_agent/agent.ts",
+    "agent:web": "adk web .",
+    "deploy:agent-engine": "adk deploy agent_engine --project tunzafy --region us-central1 .",
+    "demo": "tsx src/run.ts",
+    "demo:memory": "tsx src/runMemory.ts",
+    "eval": "tsx src/eval.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@google/adk": "^1.2.0",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@google/adk-devtools": "^1.2.0",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.0"
+  }
+}

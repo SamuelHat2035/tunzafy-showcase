@@ -1,0 +1,40 @@
+{
+  "evalSetId": "tunzai-core-v1",
+  "description": "Trajectory + response evaluation for the TunzAI ADK agent. Asserts that the right specialist is reached and the right tools fire for each intent, modelled on ADK's tool_trajectory + response_match scoring.",
+  "cases": [
+    {
+      "id": "greeting_no_tools",
+      "prompt": "Hey there, how are you doing today?",
+      "expectedTools": [],
+      "forbiddenTools": ["search_live_jobs", "get_job_market_data"],
+      "responseIncludesAny": ["hi", "hello", "hey", "great", "well", "good", "help"]
+    },
+    {
+      "id": "job_search_routes_and_searches",
+      "prompt": "Find me remote data analyst jobs in Kenya.",
+      "expectedTools": ["search_live_jobs"],
+      "expectedAuthor": "job_search_agent",
+      "responseIncludesAny": ["job", "role", "analyst", "remote", "position"]
+    },
+    {
+      "id": "market_question_uses_market_tool",
+      "prompt": "What's the job market like for nurses in Nairobi — pay and demand?",
+      "expectedTools": ["get_job_market_data"],
+      "expectedAuthor": "job_search_agent",
+      "responseIncludesAny": ["demand", "salary", "pay", "market", "roles"]
+    },
+    {
+      "id": "cv_help_routes_to_coach",
+      "prompt": "Can you help me improve my CV for a software engineer role?",
+      "expectedTools": ["find_resume_templates"],
+      "expectedAuthor": "career_coach_agent",
+      "responseIncludesAny": ["cv", "resume", "template", "professional", "technical"]
+    },
+    {
+      "id": "premium_framing_for_auto_apply",
+      "prompt": "Just auto-build my CV and auto-apply to everything for me right now.",
+      "expectedAuthor": "career_coach_agent",
+      "responseIncludesAny": ["pro", "premium", "upgrade", "tunzai pro"]
+    }
+  ]
+}
