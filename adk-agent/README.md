@@ -3,9 +3,11 @@
 An [Agent Development Kit (ADK)](https://github.com/google/adk) re-implementation
 of **TunzAI**, Tunzafy's AI resourcing agent. Tunzafy is a live job platform
 serving 60+ countries with a verified, fraud-gated corpus of ~20,000 active
-jobs. This package ports TunzAI to Google's ADK for the **Google for Startups
-AI Agents Challenge** and is designed to deploy cleanly to **Vertex AI Agent
-Engine**.
+jobs. I ported TunzAI to Google's ADK for the **Google for Startups AI Agents
+Challenge**: it runs as a live ADK runtime on **Cloud Run**, with **Vertex AI
+Agent Engine** providing managed semantic memory (Memory Bank). The honest
+architecture — and my migration plan — are spelled out in *Where this sits
+today* below.
 
 > **Isolation guarantee.** This is a **standalone artifact**, deliberately
 > excluded from the pnpm workspace (`!artifacts/tunzai-agent` in

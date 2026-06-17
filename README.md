@@ -170,7 +170,7 @@ flowchart TD
 
 ```
 tunzafy-showcase/
-├── README.md                       ← you are here
+├── README.md                       ← project overview (this file)
 ├── adk-agent/                      ← ★ STANDALONE, RUNNABLE Google ADK agent
 │   ├── README.md                   ← run instructions, architecture, security model
 │   ├── src/
